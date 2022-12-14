@@ -1,4 +1,3 @@
-
 extern crate termios;
 
 use std::io;
@@ -7,6 +6,7 @@ use std::io::Write;
 use termios::{tcsetattr, Termios, ECHO, ICANON, TCSANOW};
 
 const STDIN: i32 = 0;
+const CLEAR: &str = "\x1B[2J\x1B[1;1H";
 
 pub struct Platform {
     stdout: io::Stdout,
@@ -36,6 +36,10 @@ impl Platform {
         self.stdin.read_exact(&mut buffer).unwrap();
 
         *buffer.first().unwrap() as char
+    }
+
+    pub fn clear_display() {
+        print!("{CLEAR}");
     }
 }
 

@@ -111,10 +111,14 @@ fn parse_level(level_string: &str) -> Result<Level, String> {
         .collect();
 
     // Find the player start position.
-    let start_index = grid.iter().position(|&cell| cell == Cell::Player).unwrap();
+    let start_index = grid
+        .iter()
+        .position(|&cell| cell == Cell::Player)
+        .ok_or("Level is missing a player position.".to_string())?;
+
     let start_position = Position((start_index % width) as i32, (start_index / width) as i32);
 
-    // Find the indces and positions of the loads.
+    // Find the indices and positions of the loads.
     let load_indices: Vec<usize> = grid
         .iter()
         .enumerate()
@@ -138,6 +142,7 @@ fn parse_level(level_string: &str) -> Result<Level, String> {
         grid[index] = Cell::Empty;
     }
 
+    // Give an id to the loads.
     let mut load_hashmap = HashMap::new();
     for position in load_positions {
         load_hashmap.insert(load_hashmap.len() as i32, position);
@@ -150,10 +155,7 @@ fn parse_level(level_string: &str) -> Result<Level, String> {
     })
 }
 
-const CLEAR: &str = "\x1B[2J\x1B[1;1H";
-
 fn print_grid(grid: &Grid) {
-    print!("{CLEAR}");
     for line in grid.grid.chunks(grid.width as usize) {
         let line_string = line
             .iter()
@@ -223,6 +225,17 @@ impl GameState {
         })
     }
 
+    fn render_grid(&self) -> Grid {
+        let mut new_grid = self.level.grid.clone();
+
+        new_grid.set_cell(&self.player_position, Cell::Player);
+        for (load_id, position) in &self.load_positions {
+            new_grid.set_cell(position, Cell::Load(*load_id));
+        }
+
+        new_grid
+    }
+
     fn reset(&mut self) {
         self.player_position = self.level.start_position;
         self.load_positions = self.level.load_positions.clone();
@@ -256,17 +269,6 @@ impl GameState {
     }
 }
 
-fn render_level_state_to_grid(state: &GameState) -> Grid {
-    let mut new_grid = state.level.grid.clone();
-
-    new_grid.set_cell(&state.player_position, Cell::Player);
-    for (load_id, position) in &state.load_positions {
-        new_grid.set_cell(position, Cell::Load(*load_id));
-    }
-
-    new_grid
-}
-
 fn main() {
     let mut platform = Platform::new();
 
@@ -276,7 +278,9 @@ fn main() {
     };
 
     loop {
-        let current_grid = render_level_state_to_grid(&game_state);
+        let current_grid = game_state.render_grid();
+
+        Platform::clear_display();
         print_grid(&current_grid);
 
         let input_char = platform.read_char();
