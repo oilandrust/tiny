@@ -43,6 +43,12 @@ impl Platform {
     }
 }
 
+impl Default for Platform {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Drop for Platform {
     fn drop(&mut self) {
         tcsetattr(STDIN, TCSANOW, &self.termios).unwrap();

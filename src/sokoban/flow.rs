@@ -1,44 +1,7 @@
 use crate::sokoban::*;
+use tinylib::flow::{Command, Flow};
 
-pub trait Flow {
-    fn render(&self) {}
-
-    fn update(&mut self, _command: Command) -> Option<Box<dyn Flow>> {
-        None
-    }
-
-    fn should_quit(&self) -> bool {
-        false
-    }
-}
-
-pub struct AppFlow {
-    flow: Box<dyn Flow>,
-}
-
-impl AppFlow {
-    pub fn new() -> Self {
-        AppFlow {
-            flow: Box::new(IntroFlow {}),
-        }
-    }
-
-    pub fn render(&self) {
-        self.flow.render();
-    }
-
-    pub fn update(&mut self, command: Command) {
-        if let Some(new_flow) = self.flow.update(command) {
-            self.flow = new_flow;
-        }
-    }
-
-    pub fn should_quit(&self) -> bool {
-        self.flow.should_quit()
-    }
-}
-
-struct IntroFlow {}
+pub struct IntroFlow {}
 
 pub struct GameFlow {
     current_grid: Grid,

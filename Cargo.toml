@@ -1,7 +1,15 @@
 [package]
-name = "sokoban"
+name = "tiny"
 version = "0.1.0"
 edition = "2021"
+
+[lib]
+name = "tinylib"
+path = "src/tinylib/lib.rs"
+
+[[bin]]
+name = "sokoban"
+path = "src/sokoban/bin.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

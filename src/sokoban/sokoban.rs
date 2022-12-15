@@ -3,6 +3,8 @@ use std::{
     ops::{Add, Sub},
 };
 
+use tinylib::flow::Command;
+
 pub const INTRO: &str = "#########################
 #                       #
 #     Sokoban Mini      #
@@ -229,15 +231,6 @@ impl Add for Direction {
     fn add(self, other: Self) -> Self::Output {
         Self(self.0 + other.0, self.1 + other.1)
     }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Command {
-    Move(i32, i32),
-    RestartLevel,
-    Quit,
-    Undo,
-    Unknown,
 }
 
 pub fn translate_input(input: char) -> Command {
