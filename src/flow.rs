@@ -39,13 +39,10 @@ impl AppFlow {
 }
 
 struct IntroFlow {}
-struct LevelIntroFlow {
-    level_index: usize,
-}
 pub struct GameFlow {
     current_grid: Grid,
     game_state: GameState,
-    current_level_index: usize,
+    level_index: usize,
 }
 
 struct EndFlow {}
@@ -63,35 +60,8 @@ impl Flow for IntroFlow {
         }
 
         Some(Box::new(
-            GameFlow::new().expect("Failed to initialize game!"),
+            GameFlow::new(0).expect("Failed to initialize game!"),
         ))
-    }
-}
-
-impl Flow for LevelIntroFlow {
-    fn render(&self) {
-        print!(
-            "{}",
-            LEVEL_INTRO.replace('x', &self.level_index.to_string())
-        );
-    }
-
-    fn update(&mut self, command: Command) -> Option<Box<dyn Flow>> {
-        if command == Command::Quit {
-            return Some(Box::new(QuitFlow {}));
-        }
-
-        let Ok(new_state) = GameState::load_level(LEVELS[self.level_index]) else {
-            panic!("Invalid level");
-        };
-
-        let new_grid = new_state.render_grid();
-
-        Some(Box::new(GameFlow {
-            current_grid: new_grid,
-            game_state: new_state,
-            current_level_index: self.level_index,
-        }))
     }
 }
 
@@ -112,15 +82,15 @@ impl Flow for QuitFlow {
 }
 
 impl GameFlow {
-    fn new() -> Result<Self, String> {
-        let mut level_iter = LEVELS.iter();
-        let game_state = GameState::load_level(level_iter.next().unwrap())?;
+    fn new(level_index: usize) -> Result<Self, String> {
+        let game_state =
+            GameState::load_level(LEVELS.get(level_index).ok_or("Invalid level index")?)?;
         let initial_grid = game_state.render_grid();
 
         Ok(GameFlow {
             game_state,
             current_grid: initial_grid,
-            current_level_index: 0,
+            level_index,
         })
     }
 }
@@ -147,6 +117,9 @@ impl Flow for GameFlow {
             Command::Quit => {
                 return Some(Box::new(QuitFlow {}));
             }
+            Command::Undo => {
+                self.game_state.undo();
+            }
             _ => {}
         }
 
@@ -156,11 +129,10 @@ impl Flow for GameFlow {
         }
 
         // Load next level if any.
-        self.current_level_index += 1;
-        if self.current_level_index < LEVELS.len() {
-            Some(Box::new(LevelIntroFlow {
-                level_index: self.current_level_index,
-            }))
+        if self.level_index + 1 < LEVELS.len() {
+            Some(Box::new(
+                GameFlow::new(self.level_index + 1).expect("Failed to load level."),
+            ))
         } else {
             Some(Box::new(EndFlow {}))
         }

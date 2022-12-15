@@ -1,4 +1,7 @@
-use std::{collections::HashMap, ops::Add};
+use std::{
+    collections::HashMap,
+    ops::{Add, Sub},
+};
 
 pub const INTRO: &str = "#########################
 #                       #
@@ -11,14 +14,6 @@ pub const INTRO: &str = "#########################
 #       q  -> quit      #
 #                       #
 #   Any key to start!   #
-#                       #
-#########################";
-
-pub const LEVEL_INTRO: &str = "#########################
-#                       #
-#       Level x         #
-#                       #
-#  Any key to continue  #
 #                       #
 #########################";
 
@@ -203,6 +198,14 @@ impl Add<Direction> for Position {
     }
 }
 
+impl Sub<Direction> for Position {
+    type Output = Self;
+
+    fn sub(self, other: Direction) -> Self::Output {
+        Self(self.0 - other.0, self.1 - other.1)
+    }
+}
+
 impl Add for Direction {
     type Output = Self;
 
@@ -216,6 +219,7 @@ pub enum Command {
     Move(i32, i32),
     RestartLevel,
     Quit,
+    Undo,
     Unknown,
 }
 
@@ -227,8 +231,15 @@ pub fn translate_input(input: char) -> Command {
         'a' => Command::Move(-1, 0),
         'r' => Command::RestartLevel,
         'q' => Command::Quit,
+        'u' => Command::Undo,
         _ => Command::Unknown,
     }
+}
+
+#[derive(Clone)]
+struct Move {
+    player_move: Direction,
+    box_move: Option<i32>,
 }
 
 #[derive(Clone)]
@@ -236,6 +247,7 @@ pub struct GameState {
     pub player_position: Position,
     load_positions: HashMap<i32, Position>,
     level: Level,
+    move_history: Vec<Move>,
 }
 
 impl GameState {
@@ -248,6 +260,7 @@ impl GameState {
             player_position: level.start_position,
             load_positions: level.load_positions.clone(),
             level,
+            move_history: vec![],
         })
     }
 
@@ -267,21 +280,45 @@ impl GameState {
         self.load_positions = self.level.load_positions.clone();
     }
 
+    pub fn undo(&mut self) {
+        let Some(move_item) = self.move_history.pop() else {
+            return;
+        };
+
+        self.player_position = self.player_position - move_item.player_move;
+
+        if let Some(box_id) = move_item.box_move {
+            if let Some(load_position) = self.load_positions.get_mut(&box_id) {
+                let old_position = *load_position - move_item.player_move;
+                *load_position = old_position;
+            } else {
+                panic!("Got an id of an unnexisting load.");
+            }
+        }
+    }
+
     pub fn move_player(&mut self, grid: &Grid, direction: &Direction) {
         assert!(grid.player_can_move(&self.player_position, direction));
 
         let to_position = self.player_position + *direction;
 
+        let mut move_item = Move {
+            player_move: *direction,
+            box_move: None,
+        };
+
         // Move the load if there is one and it can move.
         if let Cell::Load(uid) = grid.cell_at(&to_position) {
             if let Some(load_position) = self.load_positions.get_mut(&uid) {
                 *load_position = to_position + *direction;
+                move_item.box_move = Some(uid);
             } else {
                 panic!("Got an id of an unnexisting load.");
             }
         }
 
         self.player_position = to_position;
+        self.move_history.push(move_item);
     }
 
     pub fn level_is_complete(&self) -> bool {
