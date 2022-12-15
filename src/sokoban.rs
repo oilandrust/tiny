@@ -28,6 +28,10 @@ pub const END: &str = "#########################
 #                       #
 #########################";
 
+const LEVEL_0: &str = "####
+@.QX
+####";
+
 const LEVEL_1: &str = "######
 #.@..#
 #X...#
@@ -42,14 +46,14 @@ const LEVEL_2: &str = "#######
 #.....#
 #######";
 
-pub const LEVELS: [&str; 2] = [LEVEL_1, LEVEL_2];
+pub const LEVELS: [&str; 3] = [LEVEL_0, LEVEL_1, LEVEL_2];
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 enum Cell {
     Wall,
     Empty,
     Player,
-    Load(i32),
+    Box(i32),
     Target,
 }
 
@@ -59,7 +63,7 @@ impl From<Cell> for char {
             Cell::Wall => '#',
             Cell::Empty => ' ',
             Cell::Player => '@',
-            Cell::Load(_) => 'Q',
+            Cell::Box(_) => 'Q',
             Cell::Target => 'X',
         }
     }
@@ -74,7 +78,7 @@ impl TryFrom<char> for Cell {
             ' ' => Ok(Cell::Empty),
             '.' => Ok(Cell::Empty),
             '@' => Ok(Cell::Player),
-            'Q' => Ok(Cell::Load(0)),
+            'Q' => Ok(Cell::Box(0)),
             'X' => Ok(Cell::Target),
             _ => Err(()),
         }
@@ -92,31 +96,38 @@ pub struct Level {
 pub struct Grid {
     grid: Vec<Cell>,
     width: usize,
+    height: usize,
 }
 
 impl Grid {
-    fn cell_at(&self, position: &Position) -> Cell {
+    fn cell_at(&self, position: Position) -> Cell {
         self.grid[position.0 as usize + self.width * position.1 as usize]
     }
 
-    fn set_cell(&mut self, position: &Position, value: Cell) {
+    fn set_cell(&mut self, position: Position, value: Cell) {
         self.grid[position.0 as usize + self.width * position.1 as usize] = value;
     }
 
-    fn is_empty(&self, position: &Position) -> bool {
+    fn is_empty(&self, position: Position) -> bool {
         let cell = self.cell_at(position);
         cell == Cell::Empty || cell == Cell::Target
     }
 
-    pub fn player_can_move(&self, from_position: &Position, direction: &Direction) -> bool {
-        let to_position = *from_position + *direction;
-        if self.is_empty(&to_position) {
+    pub fn player_can_move(&self, from_position: Position, direction: Direction) -> bool {
+        let to_position = from_position + direction;
+
+        let Position(x, y) = to_position;
+        if x < 0 || x > self.width as i32 || y < 0 || y > self.height as i32 {
+            return false;
+        }
+
+        if self.is_empty(to_position) {
             return true;
         }
 
-        let next_position = to_position + *direction;
-        match self.cell_at(&to_position) {
-            Cell::Load(_) => self.is_empty(&next_position),
+        let next_position = to_position + direction;
+        match self.cell_at(to_position) {
+            Cell::Box(_) => self.is_empty(next_position),
             _ => false,
         }
     }
@@ -145,6 +156,8 @@ fn parse_level(level_string: &str) -> Result<Level, String> {
         .filter_map(|char| char.try_into().ok())
         .collect();
 
+    let height = grid.len() / width;
+
     // Find the player start position.
     let start_index = grid
         .iter()
@@ -157,7 +170,7 @@ fn parse_level(level_string: &str) -> Result<Level, String> {
     let load_indices: Vec<usize> = grid
         .iter()
         .enumerate()
-        .filter(|&(_, &cell)| matches!(cell, Cell::Load(_)))
+        .filter(|&(_, &cell)| matches!(cell, Cell::Box(_)))
         .map(|(index, _)| index)
         .collect();
     let load_positions: Vec<Position> = load_indices
@@ -178,7 +191,11 @@ fn parse_level(level_string: &str) -> Result<Level, String> {
     }
 
     Ok(Level {
-        grid: Grid { grid, width },
+        grid: Grid {
+            grid,
+            width,
+            height,
+        },
         start_position,
         load_positions: load_hashmap,
     })
@@ -236,13 +253,11 @@ pub fn translate_input(input: char) -> Command {
     }
 }
 
-#[derive(Clone)]
 struct Move {
     player_move: Direction,
     box_move: Option<i32>,
 }
 
-#[derive(Clone)]
 pub struct GameState {
     pub player_position: Position,
     load_positions: HashMap<i32, Position>,
@@ -251,33 +266,37 @@ pub struct GameState {
 }
 
 impl GameState {
-    pub fn load_level(level_string: &str) -> Result<GameState, String> {
-        let Ok(level) = parse_level(level_string) else {
-            return Err("Failed parsing level.".to_string());
-        };
-
-        Ok(GameState {
+    fn new(level: Level) -> Self {
+        GameState {
             player_position: level.start_position,
             load_positions: level.load_positions.clone(),
             level,
             move_history: vec![],
-        })
+        }
+    }
+
+    pub fn load_level(level_string: &str) -> Result<Self, String> {
+        let Ok(level) = parse_level(level_string) else {
+            return Err("Failed parsing level.".to_string());
+        };
+
+        Ok(GameState::new(level))
     }
 
     pub fn render_grid(&self) -> Grid {
         let mut new_grid = self.level.grid.clone();
 
-        new_grid.set_cell(&self.player_position, Cell::Player);
+        new_grid.set_cell(self.player_position, Cell::Player);
         for (load_id, position) in &self.load_positions {
-            new_grid.set_cell(position, Cell::Load(*load_id));
+            new_grid.set_cell(*position, Cell::Box(*load_id));
         }
 
         new_grid
     }
 
     pub fn reset(&mut self) {
-        self.player_position = self.level.start_position;
-        self.load_positions = self.level.load_positions.clone();
+        let level = self.level.clone();
+        *self = GameState::new(level);
     }
 
     pub fn undo(&mut self) {
@@ -297,20 +316,20 @@ impl GameState {
         }
     }
 
-    pub fn move_player(&mut self, grid: &Grid, direction: &Direction) {
-        assert!(grid.player_can_move(&self.player_position, direction));
+    pub fn move_player(&mut self, grid: &Grid, direction: Direction) {
+        assert!(grid.player_can_move(self.player_position, direction));
 
-        let to_position = self.player_position + *direction;
+        let to_position = self.player_position + direction;
 
         let mut move_item = Move {
-            player_move: *direction,
+            player_move: direction,
             box_move: None,
         };
 
         // Move the load if there is one and it can move.
-        if let Cell::Load(uid) = grid.cell_at(&to_position) {
+        if let Cell::Box(uid) = grid.cell_at(to_position) {
             if let Some(load_position) = self.load_positions.get_mut(&uid) {
-                *load_position = to_position + *direction;
+                *load_position = to_position + direction;
                 move_item.box_move = Some(uid);
             } else {
                 panic!("Got an id of an unnexisting load.");
@@ -323,7 +342,7 @@ impl GameState {
 
     pub fn level_is_complete(&self) -> bool {
         for load_position in self.load_positions.values() {
-            if self.level.grid.cell_at(load_position) != Cell::Target {
+            if self.level.grid.cell_at(*load_position) != Cell::Target {
                 return false;
             }
         }

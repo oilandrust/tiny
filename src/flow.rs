@@ -106,9 +106,9 @@ impl Flow for GameFlow {
                 let direction = Direction(dx, dy);
                 if self
                     .current_grid
-                    .player_can_move(&self.game_state.player_position, &direction)
+                    .player_can_move(self.game_state.player_position, direction)
                 {
-                    self.game_state.move_player(&self.current_grid, &direction);
+                    self.game_state.move_player(&self.current_grid, direction);
                 }
             }
             Command::RestartLevel => {
