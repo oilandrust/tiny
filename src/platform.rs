@@ -17,10 +17,10 @@ pub struct Platform {
 impl Platform {
     pub fn new() -> Self {
         let termios = Termios::from_fd(STDIN).unwrap();
-        let mut new_termios = termios.clone();
+        let mut new_termios = termios;
 
         new_termios.c_lflag &= !(ICANON | ECHO); // no echo and canonical mode
-        tcsetattr(STDIN, TCSANOW, &mut new_termios).unwrap();
+        tcsetattr(STDIN, TCSANOW, &new_termios).unwrap();
 
         Platform {
             stdout: io::stdout(),

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, ops::Add};
 
-pub const INTRO: &'static str = "#########################
+pub const INTRO: &str = "#########################
 #                       #
 #     Sokoban Mini      #
 #                       #
@@ -14,7 +14,7 @@ pub const INTRO: &'static str = "#########################
 #                       #
 #########################";
 
-pub const LEVEL_INTRO: &'static str = "#########################
+pub const LEVEL_INTRO: &str = "#########################
 #                       #
 #       Level x         #
 #                       #
@@ -22,7 +22,7 @@ pub const LEVEL_INTRO: &'static str = "#########################
 #                       #
 #########################";
 
-pub const END: &'static str = "#########################
+pub const END: &str = "#########################
 #                       #
 #       The End!        #
 # All levels completed. #
@@ -33,21 +33,21 @@ pub const END: &'static str = "#########################
 #                       #
 #########################";
 
-const LEVEL_1: &'static str = "######
+const LEVEL_1: &str = "######
 #.@..#
 #X...#
 #..Q.#
 #....#
 ######";
 
-const LEVEL_2: &'static str = "#######
+const LEVEL_2: &str = "#######
 #.@...#
 #XX...#
 #..QQ.#
 #.....#
 #######";
 
-pub const LEVELS: [&'static str; 1] = [LEVEL_1];
+pub const LEVELS: [&str; 2] = [LEVEL_1, LEVEL_2];
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 enum Cell {
@@ -154,7 +154,7 @@ fn parse_level(level_string: &str) -> Result<Level, String> {
     let start_index = grid
         .iter()
         .position(|&cell| cell == Cell::Player)
-        .ok_or("Level is missing a player position.".to_string())?;
+        .ok_or_else(|| "Level is missing a player position.".to_string())?;
 
     let start_position = Position((start_index % width) as i32, (start_index / width) as i32);
 
@@ -162,13 +162,7 @@ fn parse_level(level_string: &str) -> Result<Level, String> {
     let load_indices: Vec<usize> = grid
         .iter()
         .enumerate()
-        .filter(|&(_, &cell)| {
-            if let Cell::Load(_) = cell {
-                true
-            } else {
-                false
-            }
-        })
+        .filter(|&(_, &cell)| matches!(cell, Cell::Load(_)))
         .map(|(index, _)| index)
         .collect();
     let load_positions: Vec<Position> = load_indices
@@ -217,21 +211,23 @@ impl Add for Direction {
     }
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Command {
     Move(i32, i32),
     RestartLevel,
     Quit,
+    Unknown,
 }
 
-pub fn translate_input(input: char) -> Option<Command> {
+pub fn translate_input(input: char) -> Command {
     match input {
-        'w' => Some(Command::Move(0, -1)),
-        's' => Some(Command::Move(0, 1)),
-        'd' => Some(Command::Move(1, 0)),
-        'a' => Some(Command::Move(-1, 0)),
-        'r' => Some(Command::RestartLevel),
-        'q' => Some(Command::Quit),
-        _ => None,
+        'w' => Command::Move(0, -1),
+        's' => Command::Move(0, 1),
+        'd' => Command::Move(1, 0),
+        'a' => Command::Move(-1, 0),
+        'r' => Command::RestartLevel,
+        'q' => Command::Quit,
+        _ => Command::Unknown,
     }
 }
 
@@ -272,7 +268,7 @@ impl GameState {
     }
 
     pub fn move_player(&mut self, grid: &Grid, direction: &Direction) {
-        assert!(grid.player_can_move(&self.player_position, &direction));
+        assert!(grid.player_can_move(&self.player_position, direction));
 
         let to_position = self.player_position + *direction;
 

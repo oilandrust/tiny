@@ -1,11 +1,9 @@
 use crate::sokoban::*;
 
 pub trait Flow {
-    fn render(&self);
+    fn render(&self) {}
 
-    fn handle_input(&mut self, command: Command);
-
-    fn update(&mut self) -> Option<Box<dyn Flow>> {
+    fn update(&mut self, _command: Command) -> Option<Box<dyn Flow>> {
         None
     }
 
@@ -29,12 +27,8 @@ impl AppFlow {
         self.flow.render();
     }
 
-    pub fn handle_input(&mut self, command: Command) {
-        self.flow.handle_input(command);
-    }
-
-    pub fn update(&mut self) {
-        if let Some(new_flow) = self.flow.update() {
+    pub fn update(&mut self, command: Command) {
+        if let Some(new_flow) = self.flow.update(command) {
             self.flow = new_flow;
         }
     }
@@ -52,7 +46,6 @@ pub struct GameFlow {
     current_grid: Grid,
     game_state: GameState,
     current_level_index: usize,
-    should_quit: bool,
 }
 
 struct EndFlow {}
@@ -64,9 +57,11 @@ impl Flow for IntroFlow {
         print!("{INTRO}");
     }
 
-    fn handle_input(&mut self, command: Command) {}
+    fn update(&mut self, command: Command) -> Option<Box<dyn Flow>> {
+        if command == Command::Quit {
+            return Some(Box::new(QuitFlow {}));
+        }
 
-    fn update(&mut self) -> Option<Box<dyn Flow>> {
         Some(Box::new(
             GameFlow::new().expect("Failed to initialize game!"),
         ))
@@ -77,13 +72,15 @@ impl Flow for LevelIntroFlow {
     fn render(&self) {
         print!(
             "{}",
-            LEVEL_INTRO.replace("x", &self.level_index.to_string())
+            LEVEL_INTRO.replace('x', &self.level_index.to_string())
         );
     }
 
-    fn handle_input(&mut self, command: Command) {}
+    fn update(&mut self, command: Command) -> Option<Box<dyn Flow>> {
+        if command == Command::Quit {
+            return Some(Box::new(QuitFlow {}));
+        }
 
-    fn update(&mut self) -> Option<Box<dyn Flow>> {
         let Ok(new_state) = GameState::load_level(LEVELS[self.level_index]) else {
             panic!("Invalid level");
         };
@@ -94,7 +91,6 @@ impl Flow for LevelIntroFlow {
             current_grid: new_grid,
             game_state: new_state,
             current_level_index: self.level_index,
-            should_quit: false,
         }))
     }
 }
@@ -104,22 +100,12 @@ impl Flow for EndFlow {
         print!("{END}");
     }
 
-    fn handle_input(&mut self, command: Command) {}
-
-    fn update(&mut self) -> Option<Box<dyn Flow>> {
+    fn update(&mut self, _command: Command) -> Option<Box<dyn Flow>> {
         Some(Box::new(QuitFlow {}))
     }
 }
 
 impl Flow for QuitFlow {
-    fn render(&self) {}
-
-    fn handle_input(&mut self, command: Command) {}
-
-    fn update(&mut self) -> Option<Box<dyn Flow>> {
-        None
-    }
-
     fn should_quit(&self) -> bool {
         true
     }
@@ -135,7 +121,6 @@ impl GameFlow {
             game_state,
             current_grid: initial_grid,
             current_level_index: 0,
-            should_quit: false,
         })
     }
 }
@@ -145,7 +130,7 @@ impl Flow for GameFlow {
         self.current_grid.print();
     }
 
-    fn handle_input(&mut self, command: Command) {
+    fn update(&mut self, command: Command) -> Option<Box<dyn Flow>> {
         match command {
             Command::Move(dx, dy) => {
                 let direction = Direction(dx, dy);
@@ -159,13 +144,10 @@ impl Flow for GameFlow {
             Command::RestartLevel => {
                 self.game_state.reset();
             }
-            Command::Quit => self.should_quit = true,
-        }
-    }
-
-    fn update(&mut self) -> Option<Box<dyn Flow>> {
-        if self.should_quit {
-            return Some(Box::new(QuitFlow {}));
+            Command::Quit => {
+                return Some(Box::new(QuitFlow {}));
+            }
+            _ => {}
         }
 
         self.current_grid = self.game_state.render_grid();

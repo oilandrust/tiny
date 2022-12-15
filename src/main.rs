@@ -15,13 +15,8 @@ fn main() {
         app.render();
 
         let input_char = platform.read_char();
+        let command = translate_input(input_char);
 
-        // TODO: change into while to avoid redrawing when input isn't a command.
-        let Some(command) = translate_input(input_char) else {
-            continue;
-        };
-
-        app.handle_input(command);
-        app.update();
+        app.update(command);
     }
 }
