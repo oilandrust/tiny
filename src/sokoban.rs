@@ -89,7 +89,7 @@ impl TryFrom<char> for Cell {
 pub struct Level {
     grid: Grid,
     start_position: Position,
-    load_positions: HashMap<i32, Position>,
+    box_positions: HashMap<i32, Position>,
 }
 
 #[derive(Debug, Clone)]
@@ -197,7 +197,7 @@ fn parse_level(level_string: &str) -> Result<Level, String> {
             height,
         },
         start_position,
-        load_positions: load_hashmap,
+        box_positions: load_hashmap,
     })
 }
 
@@ -260,7 +260,7 @@ struct Move {
 
 pub struct GameState {
     pub player_position: Position,
-    load_positions: HashMap<i32, Position>,
+    box_positions: HashMap<i32, Position>,
     level: Level,
     move_history: Vec<Move>,
 }
@@ -269,7 +269,7 @@ impl GameState {
     fn new(level: Level) -> Self {
         GameState {
             player_position: level.start_position,
-            load_positions: level.load_positions.clone(),
+            box_positions: level.box_positions.clone(),
             level,
             move_history: vec![],
         }
@@ -287,7 +287,7 @@ impl GameState {
         let mut new_grid = self.level.grid.clone();
 
         new_grid.set_cell(self.player_position, Cell::Player);
-        for (load_id, position) in &self.load_positions {
+        for (load_id, position) in &self.box_positions {
             new_grid.set_cell(*position, Cell::Box(*load_id));
         }
 
@@ -307,11 +307,11 @@ impl GameState {
         self.player_position = self.player_position - move_item.player_move;
 
         if let Some(box_id) = move_item.box_move {
-            if let Some(load_position) = self.load_positions.get_mut(&box_id) {
+            if let Some(load_position) = self.box_positions.get_mut(&box_id) {
                 let old_position = *load_position - move_item.player_move;
                 *load_position = old_position;
             } else {
-                panic!("Got an id of an unnexisting load.");
+                panic!("Got an id of an unnexisting box.");
             }
         }
     }
@@ -328,7 +328,7 @@ impl GameState {
 
         // Move the load if there is one and it can move.
         if let Cell::Box(uid) = grid.cell_at(to_position) {
-            if let Some(load_position) = self.load_positions.get_mut(&uid) {
+            if let Some(load_position) = self.box_positions.get_mut(&uid) {
                 *load_position = to_position + direction;
                 move_item.box_move = Some(uid);
             } else {
@@ -341,7 +341,7 @@ impl GameState {
     }
 
     pub fn level_is_complete(&self) -> bool {
-        for load_position in self.load_positions.values() {
+        for load_position in self.box_positions.values() {
             if self.level.grid.cell_at(*load_position) != Cell::Target {
                 return false;
             }

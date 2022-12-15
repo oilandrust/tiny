@@ -39,6 +39,7 @@ impl AppFlow {
 }
 
 struct IntroFlow {}
+
 pub struct GameFlow {
     current_grid: Grid,
     game_state: GameState,
