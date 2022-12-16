@@ -3,22 +3,6 @@ use std::{
     ops::{Add, Sub},
 };
 
-use tinylib::flow::Command;
-
-pub const INTRO: &str = "#########################
-#                       #
-#     Sokoban Mini      #
-#                       #
-#                       #
-#     wasd -> move      #
-#       r  -> reset     #
-#       u  -> undo      #
-#       q  -> quit      #
-#                       #
-#   Any key to start!   #
-#                       #
-#########################";
-
 pub const END: &str = "#########################
 #                       #
 #       The End!        #
@@ -230,19 +214,6 @@ impl Add for Direction {
 
     fn add(self, other: Self) -> Self::Output {
         Self(self.0 + other.0, self.1 + other.1)
-    }
-}
-
-pub fn translate_input(input: char) -> Command {
-    match input {
-        'w' => Command::Move(0, -1),
-        's' => Command::Move(0, 1),
-        'd' => Command::Move(1, 0),
-        'a' => Command::Move(-1, 0),
-        'r' => Command::RestartLevel,
-        'q' => Command::Quit,
-        'u' => Command::Undo,
-        _ => Command::Unknown,
     }
 }
 

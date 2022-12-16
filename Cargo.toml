@@ -11,6 +11,10 @@ path = "src/tinylib/lib.rs"
 name = "sokoban"
 path = "src/sokoban/bin.rs"
 
+[[bin]]
+name = "snake"
+path = "src/snake/bin.rs"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]

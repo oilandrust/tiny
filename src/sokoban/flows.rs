@@ -1,7 +1,43 @@
 use crate::sokoban::*;
-use tinylib::flow::{Command, Flow};
+use tinylib::{
+    flow::Flow,
+    flows::{GameLauncher, QuitFlow},
+    platform::Key,
+};
 
-pub struct IntroFlow {}
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum Command {
+    Move(i32, i32),
+    RestartLevel,
+    Quit,
+    Undo,
+    Unknown,
+}
+
+pub fn translate_input(input: Key) -> Command {
+    match input {
+        Key::W => Command::Move(0, -1),
+        Key::S => Command::Move(0, 1),
+        Key::D => Command::Move(1, 0),
+        Key::A => Command::Move(-1, 0),
+        Key::R => Command::RestartLevel,
+        Key::Q => Command::Quit,
+        Key::U => Command::Undo,
+        _ => Command::Unknown,
+    }
+}
+
+pub struct SokobanLauncher;
+
+impl GameLauncher for SokobanLauncher {
+    fn new() -> Self {
+        SokobanLauncher
+    }
+
+    fn launch_game(&self) -> Box<dyn Flow> {
+        Box::new(GameFlow::new(0).expect("Failed to initialize game!"))
+    }
+}
 
 pub struct GameFlow {
     current_grid: Grid,
@@ -11,37 +47,13 @@ pub struct GameFlow {
 
 struct EndFlow {}
 
-struct QuitFlow {}
-
-impl Flow for IntroFlow {
-    fn render(&self) {
-        print!("{INTRO}");
-    }
-
-    fn update(&mut self, command: Command) -> Option<Box<dyn Flow>> {
-        if command == Command::Quit {
-            return Some(Box::new(QuitFlow {}));
-        }
-
-        Some(Box::new(
-            GameFlow::new(0).expect("Failed to initialize game!"),
-        ))
-    }
-}
-
 impl Flow for EndFlow {
     fn render(&self) {
         print!("{END}");
     }
 
-    fn update(&mut self, _command: Command) -> Option<Box<dyn Flow>> {
+    fn update(&mut self, _key: Key) -> Option<Box<dyn Flow>> {
         Some(Box::new(QuitFlow {}))
-    }
-}
-
-impl Flow for QuitFlow {
-    fn should_quit(&self) -> bool {
-        true
     }
 }
 
@@ -64,7 +76,8 @@ impl Flow for GameFlow {
         self.current_grid.print();
     }
 
-    fn update(&mut self, command: Command) -> Option<Box<dyn Flow>> {
+    fn update(&mut self, key: Key) -> Option<Box<dyn Flow>> {
+        let command = translate_input(key);
         match command {
             Command::Move(dx, dy) => {
                 let direction = Direction(dx, dy);

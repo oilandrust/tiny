@@ -1,22 +1,18 @@
-use flows::SokobanLauncher;
 use tinylib::flow::AppFlow;
 use tinylib::flows::IntroFlow;
 use tinylib::platform::Platform;
 
 mod flows;
-mod sokoban;
+mod snake;
+
+use flows::SnakeLauncher;
 
 fn main() {
-    let controls = [
-        ("wasd", "move"),
-        ("r", "reset"),
-        ("u", "undo"),
-        ("q", "quit"),
-    ];
+    let controls = [("wasd", "move"), ("q", "quit")];
 
     let mut platform = Platform::new();
     let mut app = AppFlow::new()
-        .start_flow(IntroFlow::<SokobanLauncher>::new("Sokoban").with_controls(&controls));
+        .start_flow(IntroFlow::<SnakeLauncher>::new("Snake").with_controls(&controls));
 
     while !app.should_quit() {
         Platform::clear_display();

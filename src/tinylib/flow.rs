@@ -1,15 +1,11 @@
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Command {
-    Move(i32, i32),
-    RestartLevel,
-    Quit,
-    Undo,
-    Unknown,
-}
+use crate::platform::Key;
+
+use crate::flows::DefaultFlow;
+
 pub trait Flow {
     fn render(&self) {}
 
-    fn update(&mut self, _command: Command) -> Option<Box<dyn Flow>> {
+    fn update(&mut self, _key: Key) -> Option<Box<dyn Flow>> {
         None
     }
 
@@ -21,9 +17,6 @@ pub trait Flow {
 pub struct AppFlow {
     flow: Box<dyn Flow>,
 }
-
-struct DefaultFlow;
-impl Flow for DefaultFlow {}
 
 impl AppFlow {
     pub fn new() -> Self {
@@ -44,8 +37,8 @@ impl AppFlow {
         self.flow.render();
     }
 
-    pub fn update(&mut self, command: Command) {
-        if let Some(new_flow) = self.flow.update(command) {
+    pub fn update(&mut self, key: Key) {
+        if let Some(new_flow) = self.flow.update(key) {
             self.flow = new_flow;
         }
     }
