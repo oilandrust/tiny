@@ -25,7 +25,7 @@ impl AppFlow {
         }
     }
 
-    pub fn start_flow<FlowType>(mut self, flow: FlowType) -> Self
+    pub fn with_flow<FlowType>(mut self, flow: FlowType) -> Self
     where
         FlowType: Flow + 'static,
     {

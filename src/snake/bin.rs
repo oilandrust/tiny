@@ -11,8 +11,8 @@ fn main() {
     let controls = [("wasd", "move"), ("q", "quit")];
 
     let mut platform = Platform::new();
-    let mut app = AppFlow::new()
-        .start_flow(IntroFlow::<SnakeLauncher>::new("Snake").with_controls(&controls));
+    let mut app =
+        AppFlow::new().with_flow(IntroFlow::<SnakeLauncher>::new("Snake").with_controls(&controls));
 
     while !app.should_quit() {
         Platform::clear_display();

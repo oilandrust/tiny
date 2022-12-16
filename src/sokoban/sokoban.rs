@@ -131,18 +131,28 @@ impl Grid {
 }
 
 fn parse_level(level_string: &str) -> Result<Level, String> {
-    let width = level_string
-        .chars()
-        .position(|char| char == '\n')
-        .ok_or("Cound not find level width")?;
-
-    let mut grid: Vec<Cell> = level_string
-        .chars()
-        .filter(|char| *char != '\n')
-        .filter_map(|char| char.try_into().ok())
+    let mut lines: Vec<Vec<Cell>> = level_string
+        .split('\n')
+        .map(|line| {
+            line.chars()
+                .filter_map(|char| char.try_into().ok())
+                .collect()
+        })
         .collect();
 
-    let height = grid.len() / width;
+    let width = lines
+        .iter()
+        .max_by_key(|line| line.len())
+        .ok_or("Malformated level")?
+        .len();
+
+    let height = lines.len();
+
+    for line in &mut lines {
+        line.resize(width, Cell::Empty);
+    }
+
+    let mut grid: Vec<Cell> = lines.into_iter().flatten().collect();
 
     // Find the player start position.
     let start_index = grid
@@ -164,7 +174,7 @@ fn parse_level(level_string: &str) -> Result<Level, String> {
         .map(|index| Position((index % width) as i32, (index / width) as i32))
         .collect();
 
-    // Set the cells where the player and loads are as empty, they are manages as part of the game state.
+    // Set the cells where the player and loads are as empty, they are managed as part of the game state.
     grid[start_index] = Cell::Empty;
     for index in load_indices {
         grid[index] = Cell::Empty;

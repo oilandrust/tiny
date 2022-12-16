@@ -16,7 +16,7 @@ fn main() {
 
     let mut platform = Platform::new();
     let mut app = AppFlow::new()
-        .start_flow(IntroFlow::<SokobanLauncher>::new("Sokoban").with_controls(&controls));
+        .with_flow(IntroFlow::<SokobanLauncher>::new("Sokoban").with_controls(&controls));
 
     while !app.should_quit() {
         Platform::clear_display();
