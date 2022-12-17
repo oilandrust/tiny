@@ -16,9 +16,9 @@ pub enum Command {
 pub fn translate_input(input: Key) -> Command {
     match input {
         Key::W => Command::Move(0, -1),
+        Key::A => Command::Move(-1, 0),
         Key::S => Command::Move(0, 1),
         Key::D => Command::Move(1, 0),
-        Key::A => Command::Move(-1, 0),
         Key::Q => Command::Quit,
         _ => Command::Unknown,
     }

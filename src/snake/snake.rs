@@ -1,20 +1,50 @@
-use std::iter;
+use std::{collections::VecDeque, iter};
 
-use tiny::math::{Direction, Directionf32, Position, Positionf32};
+use tiny::math::{Direction, Position};
 
 struct Snake {
-    head_position: Positionf32,
-    direction: Directionf32,
-    length: u32,
+    direction: Direction,
+    parts: VecDeque<Position>,
+    accumulated_distance: f32,
 }
 
-#[derive(Clone, Copy)]
+impl Snake {
+    fn new(head_position: Position, length: usize) -> Self {
+        let Position { x, y } = head_position;
+        let parts = VecDeque::from([
+            head_position,
+            Position { x: x - 1, y },
+            Position { x: x - 2, y },
+        ]);
+
+        Snake {
+            direction: Direction { x: 1, y: 0 },
+            parts,
+            accumulated_distance: 0.0f32,
+        }
+    }
+
+    fn advance(&mut self) {
+        assert!(!self.parts.is_empty());
+
+        // TODO: Make that framerate independent!
+        self.accumulated_distance += 0.2f32;
+        if self.accumulated_distance > 1.0f32 {
+            let new_head_position = *self.parts.front().unwrap() + self.direction;
+            self.parts.push_front(new_head_position);
+            self.parts.pop_back();
+            self.accumulated_distance = 0.0f32;
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum SnakePart {
     Head,
     Body,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Cell {
     Empty,
     Wall,
@@ -34,13 +64,45 @@ impl From<Cell> for char {
     }
 }
 
-pub struct GameState {
-    snake: Snake,
-    level_size: (usize, usize),
-    level: Vec<Cell>,
+#[derive(Debug, Clone)]
+pub struct Grid {
+    grid: Vec<Cell>,
+    width: usize,
+    height: usize,
 }
 
-fn initialize_level(size: (usize, usize)) -> Vec<Cell> {
+impl Grid {
+    pub fn cell_at(&self, position: Position) -> Cell {
+        self.grid[position.x as usize + self.width * position.y as usize]
+    }
+
+    pub fn set_cell(&mut self, position: Position, value: Cell) {
+        self.grid[position.x as usize + self.width * position.y as usize] = value;
+    }
+
+    pub fn is_empty(&self, position: Position) -> bool {
+        let cell = self.cell_at(position);
+        cell == Cell::Empty || cell == Cell::Food
+    }
+
+    pub fn print(&self) {
+        for line in self.grid.chunks(self.width as usize) {
+            let line_string = line
+                .iter()
+                .map(|cell| char::from(*cell))
+                .collect::<String>();
+
+            println!("{line_string}");
+        }
+    }
+}
+
+pub struct GameState {
+    snake: Snake,
+    grid: Grid,
+}
+
+fn initialize_level(size: (usize, usize)) -> Grid {
     let interior_size = (size.0 - 2, size.1 - 2);
 
     let mut level = Vec::with_capacity((size.0 * size.1) as usize);
@@ -56,66 +118,49 @@ fn initialize_level(size: (usize, usize)) -> Vec<Cell> {
     }
     level.extend(iter::repeat(Cell::Wall).take(size.0 as usize));
 
-    level
+    Grid {
+        grid: level,
+        width: size.0,
+        height: size.1,
+    }
 }
 
 impl GameState {
     pub fn new() -> Self {
-        let default_size = (60, 20);
+        let default_size = (60, 60);
+
         Self {
-            snake: Snake {
-                head_position: Positionf32 {
-                    x: 4.0f32,
-                    y: 4.0f32,
-                },
-                direction: Directionf32 {
-                    x: 1.0f32,
-                    y: 0.0f32,
-                },
-                length: 3,
-            },
-            level_size: default_size,
-            level: initialize_level(default_size),
+            snake: Snake::new(Position { x: 3, y: 1 }, 3),
+            grid: initialize_level(default_size),
         }
     }
 
     pub fn update(&mut self) {
-        let position = self.snake.head_position;
-        let direction = self.snake.direction;
-        let new_position = position + direction * 0.1f32;
-
-        self.snake.head_position = new_position;
+        self.snake.advance();
     }
 
     pub fn render(&self) {
         // Render the level.
-        let mut render = self.level.clone();
+        let mut render = self.grid.clone();
 
         // Render the snake.
-        render[self.snake.head_position.x as usize
-            + self.level_size.0 * self.snake.head_position.y as usize] =
-            Cell::Snake(SnakePart::Head);
+        for part in self.snake.parts.iter() {
+            render.set_cell(*part, Cell::Snake(SnakePart::Body));
+        }
+        render.set_cell(
+            *self.snake.parts.front().unwrap(),
+            Cell::Snake(SnakePart::Head),
+        );
 
         // Print all.
-        render
-            .chunks(self.level_size.0)
-            .map(|line| {
-                line.iter()
-                    .map(|cell| char::from(*cell))
-                    .collect::<String>()
-            })
-            .for_each(|line| {
-                println!("{line}");
-            });
+        render.print();
     }
 
     pub fn set_direction(&mut self, new_direction: Direction) {
-        if new_direction == self.snake.direction.into()
-            || -new_direction == self.snake.direction.into()
-        {
+        if new_direction == self.snake.direction || -new_direction == self.snake.direction {
             return;
         }
 
-        self.snake.direction = new_direction.into();
+        self.snake.direction = new_direction;
     }
 }
