@@ -86,7 +86,7 @@ impl<Launcher: GameLauncher> Flow for IntroFlow<Launcher> {
         println!("{}", "#".repeat(intro_len));
     }
 
-    fn update(&mut self, key: Key) -> Option<Box<dyn Flow>> {
+    fn handle_key(&mut self, key: Key) -> Option<Box<dyn Flow>> {
         if key == Key::Q {
             return Some(Box::new(QuitFlow));
         }

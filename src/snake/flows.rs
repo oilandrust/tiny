@@ -1,4 +1,5 @@
-use tinylib::{
+use crate::snake::GameState;
+use tiny::{
     flow::Flow,
     flows::{GameLauncher, QuitFlow},
     platform::Key,
@@ -33,18 +34,29 @@ impl GameLauncher for SnakeLauncher {
     }
 }
 
-pub struct GameFlow {}
+pub struct GameFlow {
+    state: GameState,
+}
 
 impl GameFlow {
-    fn new() -> Result<Self, String> {
-        Ok(GameFlow {})
+    pub fn new() -> Self {
+        GameFlow {
+            state: GameState::new(),
+        }
     }
 }
 
 impl Flow for GameFlow {
-    fn render(&self) {}
+    fn render(&self) {
+        self.state.render();
+    }
 
-    fn update(&mut self, key: Key) -> Option<Box<dyn Flow>> {
+    fn update(&mut self) -> Option<Box<dyn Flow>> {
+        self.state.update();
+        None
+    }
+
+    fn handle_key(&mut self, key: Key) -> Option<Box<dyn Flow>> {
         let command = translate_input(key);
         match command {
             Command::Move(dx, dy) => {}

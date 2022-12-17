@@ -1,7 +1,11 @@
-use crate::sokoban::*;
-use tinylib::{
+use crate::{
+    level::{Grid, LEVELS},
+    sokoban::*,
+};
+use tiny::{
     flow::Flow,
     flows::{GameLauncher, QuitFlow},
+    math::Direction,
     platform::Key,
 };
 
@@ -17,9 +21,9 @@ pub enum Command {
 pub fn translate_input(input: Key) -> Command {
     match input {
         Key::W => Command::Move(0, -1),
+        Key::A => Command::Move(-1, 0),
         Key::S => Command::Move(0, 1),
         Key::D => Command::Move(1, 0),
-        Key::A => Command::Move(-1, 0),
         Key::R => Command::RestartLevel,
         Key::Q => Command::Quit,
         Key::U => Command::Undo,
@@ -52,7 +56,7 @@ impl Flow for EndFlow {
         print!("{END}");
     }
 
-    fn update(&mut self, _key: Key) -> Option<Box<dyn Flow>> {
+    fn handle_key(&mut self, _key: Key) -> Option<Box<dyn Flow>> {
         Some(Box::new(QuitFlow {}))
     }
 }
@@ -76,11 +80,11 @@ impl Flow for GameFlow {
         self.current_grid.print();
     }
 
-    fn update(&mut self, key: Key) -> Option<Box<dyn Flow>> {
+    fn handle_key(&mut self, key: Key) -> Option<Box<dyn Flow>> {
         let command = translate_input(key);
         match command {
             Command::Move(dx, dy) => {
-                let direction = Direction(dx, dy);
+                let direction = Direction { x: dx, y: dy };
                 if self
                     .current_grid
                     .player_can_move(self.game_state.player_position, direction)
@@ -100,6 +104,10 @@ impl Flow for GameFlow {
             _ => {}
         }
 
+        None
+    }
+
+    fn update(&mut self) -> Option<Box<dyn Flow>> {
         self.current_grid = self.game_state.render_grid();
         if !self.game_state.level_is_complete() {
             return None;

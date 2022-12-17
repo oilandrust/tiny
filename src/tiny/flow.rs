@@ -5,7 +5,11 @@ use crate::flows::DefaultFlow;
 pub trait Flow {
     fn render(&self) {}
 
-    fn update(&mut self, _key: Key) -> Option<Box<dyn Flow>> {
+    fn handle_key(&mut self, _key: Key) -> Option<Box<dyn Flow>> {
+        None
+    }
+
+    fn update(&mut self) -> Option<Box<dyn Flow>> {
         None
     }
 
@@ -37,8 +41,18 @@ impl AppFlow {
         self.flow.render();
     }
 
-    pub fn update(&mut self, key: Key) {
-        if let Some(new_flow) = self.flow.update(key) {
+    pub fn handle_key(&mut self, key: Key) {
+        if let Some(new_flow) = self.flow.handle_key(key) {
+            self.flow = new_flow;
+        }
+    }
+
+    pub fn update(&mut self) {
+        if self.should_quit() {
+            return;
+        }
+
+        if let Some(new_flow) = self.flow.update() {
             self.flow = new_flow;
         }
     }

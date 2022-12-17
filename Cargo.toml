@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "tinylib"
-path = "src/tinylib/lib.rs"
+name = "tiny"
+path = "src/tiny/lib.rs"
 
 [[bin]]
 name = "sokoban"
@@ -14,8 +14,6 @@ path = "src/sokoban/bin.rs"
 [[bin]]
 name = "snake"
 path = "src/snake/bin.rs"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 termios = "0.3"
