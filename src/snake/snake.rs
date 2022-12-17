@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, iter};
+use std::{collections::VecDeque, iter, ops::ControlFlow};
 
 use tiny::math::{Direction, Position};
 
@@ -35,6 +35,13 @@ impl Snake {
             self.parts.pop_back();
             self.accumulated_distance = 0.0f32;
         }
+    }
+
+    fn set_direction(&mut self, new_direction: Direction) {
+        if new_direction == self.direction || -new_direction == self.direction {
+            return;
+        }
+        self.direction = new_direction;
     }
 }
 
@@ -157,10 +164,6 @@ impl GameState {
     }
 
     pub fn set_direction(&mut self, new_direction: Direction) {
-        if new_direction == self.snake.direction || -new_direction == self.snake.direction {
-            return;
-        }
-
-        self.snake.direction = new_direction;
+        self.snake.set_direction(new_direction);
     }
 }

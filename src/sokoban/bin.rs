@@ -3,9 +3,8 @@ mod level;
 mod sokoban;
 
 use flows::SokobanLauncher;
-use tiny::flow::AppFlow;
-use tiny::flows::IntroFlow;
-use tiny::platform::Platform;
+use tiny::app::TinyApp;
+use tiny::flow::IntroFlow;
 
 fn main() {
     let controls = [
@@ -15,7 +14,7 @@ fn main() {
         ("q", "quit"),
     ];
 
-    let mut app = AppFlow::new()
+    let mut app = TinyApp::new()
         .with_flow(IntroFlow::<SokobanLauncher>::new("Sokoban").with_controls(&controls));
 
     app.run();

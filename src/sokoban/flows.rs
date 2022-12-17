@@ -3,10 +3,8 @@ use crate::{
     sokoban::*,
 };
 use tiny::{
-    flow::Flow,
-    flows::{GameLauncher, QuitFlow},
-    math::Direction,
-    platform::Key,
+    flow::{GameLauncher, QuitFlow},
+    prelude::*,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

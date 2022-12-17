@@ -1,14 +1,14 @@
 mod flows;
 mod snake;
 
-use flows::{GameFlow, SnakeLauncher};
-use tiny::flow::AppFlow;
+use flows::SnakeLauncher;
+use tiny::{app::TinyApp, flow::IntroFlow};
 
 fn main() {
     let controls = [("wasd", "move"), ("q", "quit")];
 
-    //with_flow(IntroFlow::<SnakeLauncher>::new("Snake").with_controls(&controls)
-    let mut app = AppFlow::new().with_flow(GameFlow::new());
+    let mut app =
+        TinyApp::new().with_flow(IntroFlow::<SnakeLauncher>::new("Snake").with_controls(&controls));
 
     app.run();
 }

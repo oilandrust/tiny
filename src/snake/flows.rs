@@ -1,10 +1,7 @@
 use crate::snake::GameState;
-use tiny::{
-    flow::Flow,
-    flows::{GameLauncher, QuitFlow},
-    math::Direction,
-    platform::Key,
-};
+use tiny::prelude::*;
+
+use tiny::flow::{GameLauncher, QuitFlow};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Command {
@@ -31,7 +28,7 @@ impl GameLauncher for SnakeLauncher {
     }
 
     fn launch_game(&self) -> Box<dyn Flow> {
-        Box::new(QuitFlow)
+        Box::new(GameFlow::new())
     }
 }
 
