@@ -2,6 +2,7 @@ use crate::snake::GameState;
 use tiny::{
     flow::Flow,
     flows::{GameLauncher, QuitFlow},
+    math::Direction,
     platform::Key,
 };
 
@@ -59,7 +60,10 @@ impl Flow for GameFlow {
     fn handle_key(&mut self, key: Key) -> Option<Box<dyn Flow>> {
         let command = translate_input(key);
         match command {
-            Command::Move(dx, dy) => {}
+            Command::Move(dx, dy) => {
+                let new_direction = Direction { x: dx, y: dy };
+                self.state.set_direction(new_direction);
+            }
             Command::Quit => {
                 return Some(Box::new(QuitFlow {}));
             }

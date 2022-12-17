@@ -17,3 +17,4 @@ path = "src/snake/bin.rs"
 
 [dependencies]
 termios = "0.3"
+libc = "0.2"

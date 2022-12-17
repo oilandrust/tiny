@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Mul, Sub};
+use std::ops::{Add, AddAssign, Mul, Neg, Sub};
 
 pub type Position = PositionT<i32>;
 pub type Direction = DirectionT<i32>;
@@ -6,13 +6,13 @@ pub type Direction = DirectionT<i32>;
 pub type Positionf32 = PositionT<f32>;
 pub type Directionf32 = DirectionT<f32>;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PositionT<T> {
     pub x: T,
     pub y: T,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DirectionT<T> {
     pub x: T,
     pub y: T,
@@ -71,6 +71,17 @@ where
         Self {
             x: self.x * other,
             y: self.y * other,
+        }
+    }
+}
+
+impl<T: Neg<Output = T>> Neg for DirectionT<T> {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Self {
+            x: -self.x,
+            y: -self.y,
         }
     }
 }

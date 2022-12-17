@@ -21,5 +21,6 @@ dependencies = [
 name = "tiny"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "termios",
 ]

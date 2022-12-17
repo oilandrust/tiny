@@ -84,8 +84,6 @@ impl GameState {
         let direction = self.snake.direction;
         let new_position = position + direction * 0.1f32;
 
-        println!("{:?} {:?} {:?}", position, direction, new_position);
-
         self.snake.head_position = new_position;
     }
 
@@ -109,5 +107,15 @@ impl GameState {
             .for_each(|line| {
                 println!("{line}");
             });
+    }
+
+    pub fn set_direction(&mut self, new_direction: Direction) {
+        if new_direction == self.snake.direction.into()
+            || -new_direction == self.snake.direction.into()
+        {
+            return;
+        }
+
+        self.snake.direction = new_direction.into();
     }
 }

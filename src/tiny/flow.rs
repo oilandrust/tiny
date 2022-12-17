@@ -1,6 +1,8 @@
-use crate::platform::Key;
+use core::time;
+use std::thread;
 
 use crate::flows::DefaultFlow;
+use crate::platform::{Key, Platform};
 
 pub trait Flow {
     fn render(&self) {}
@@ -20,12 +22,14 @@ pub trait Flow {
 
 pub struct AppFlow {
     flow: Box<dyn Flow>,
+    platform: Platform,
 }
 
 impl AppFlow {
     pub fn new() -> Self {
         AppFlow {
             flow: Box::new(DefaultFlow {}),
+            platform: Platform::new(),
         }
     }
 
@@ -35,6 +39,22 @@ impl AppFlow {
     {
         self.flow = Box::new(flow);
         self
+    }
+
+    pub fn run(&mut self) {
+        while !self.should_quit() {
+            Platform::clear_display();
+            self.render();
+
+            if let Some(input_char) = self.platform.poll_input() {
+                let key = Platform::translate_input(input_char);
+                self.handle_key(key);
+            }
+
+            self.update();
+
+            thread::sleep(time::Duration::from_millis(33));
+        }
     }
 
     pub fn render(&self) {
