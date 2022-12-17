@@ -57,17 +57,17 @@ impl AppFlow {
         }
     }
 
-    pub fn render(&self) {
+    fn render(&self) {
         self.flow.render();
     }
 
-    pub fn handle_key(&mut self, key: Key) {
+    fn handle_key(&mut self, key: Key) {
         if let Some(new_flow) = self.flow.handle_key(key) {
             self.flow = new_flow;
         }
     }
 
-    pub fn update(&mut self) {
+    fn update(&mut self) {
         if self.should_quit() {
             return;
         }
@@ -77,7 +77,7 @@ impl AppFlow {
         }
     }
 
-    pub fn should_quit(&self) -> bool {
+    fn should_quit(&self) -> bool {
         self.flow.should_quit()
     }
 }
