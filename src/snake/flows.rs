@@ -49,8 +49,8 @@ impl Flow for GameFlow {
         self.state.render();
     }
 
-    fn update(&mut self) -> Option<Box<dyn Flow>> {
-        self.state.update();
+    fn update(&mut self, delta_time: Duration) -> Option<Box<dyn Flow>> {
+        self.state.update(delta_time);
         None
     }
 

@@ -1,6 +1,7 @@
-use std::{collections::VecDeque, iter, ops::ControlFlow};
+use std::{collections::VecDeque, iter};
 
-use tiny::math::{Direction, Position};
+use rand::Rng;
+use tiny::prelude::*;
 
 struct Snake {
     direction: Direction,
@@ -8,14 +9,21 @@ struct Snake {
     accumulated_distance: f32,
 }
 
+enum AdvanceResult {
+    Collision,
+    Ok(Position),
+}
+
 impl Snake {
     fn new(head_position: Position, length: usize) -> Self {
         let Position { x, y } = head_position;
-        let parts = VecDeque::from([
-            head_position,
-            Position { x: x - 1, y },
-            Position { x: x - 2, y },
-        ]);
+        let mut parts = VecDeque::from([head_position]);
+        for i in 0..length {
+            parts.push_back(Position {
+                x: x - (i + 1) as i32,
+                y,
+            });
+        }
 
         Snake {
             direction: Direction { x: 1, y: 0 },
@@ -24,17 +32,40 @@ impl Snake {
         }
     }
 
-    fn advance(&mut self) {
+    fn head_position(&self) -> Position {
         assert!(!self.parts.is_empty());
 
-        // TODO: Make that framerate independent!
-        self.accumulated_distance += 0.2f32;
+        *self.parts.front().unwrap()
+    }
+
+    fn advance(&mut self, grid: &Grid, delta_time: Duration) -> AdvanceResult {
+        assert!(!self.parts.is_empty());
+
+        let speed = 1.0f32 * self.parts.len() as f32;
+        self.accumulated_distance += speed * delta_time.as_secs_f32();
         if self.accumulated_distance > 1.0f32 {
             let new_head_position = *self.parts.front().unwrap() + self.direction;
+
+            if !grid.is_empty(new_head_position) {
+                return AdvanceResult::Collision;
+            }
+
+            for part in &self.parts {
+                if *part == new_head_position {
+                    return AdvanceResult::Collision;
+                }
+            }
+
             self.parts.push_front(new_head_position);
             self.parts.pop_back();
             self.accumulated_distance = 0.0f32;
         }
+
+        return AdvanceResult::Ok(*self.parts.back().unwrap());
+    }
+
+    fn grow(&mut self, tail_position: Position) {
+        self.parts.push_back(tail_position);
     }
 
     fn set_direction(&mut self, new_direction: Direction) {
@@ -79,11 +110,11 @@ pub struct Grid {
 }
 
 impl Grid {
-    pub fn cell_at(&self, position: Position) -> Cell {
+    fn cell_at(&self, position: Position) -> Cell {
         self.grid[position.x as usize + self.width * position.y as usize]
     }
 
-    pub fn set_cell(&mut self, position: Position, value: Cell) {
+    fn set_cell(&mut self, position: Position, value: Cell) {
         self.grid[position.x as usize + self.width * position.y as usize] = value;
     }
 
@@ -107,6 +138,8 @@ impl Grid {
 pub struct GameState {
     snake: Snake,
     grid: Grid,
+    food_spawmer: FoodSpawner,
+    foods: Vec<Position>,
 }
 
 fn initialize_level(size: (usize, usize)) -> Grid {
@@ -132,18 +165,74 @@ fn initialize_level(size: (usize, usize)) -> Grid {
     }
 }
 
+struct FoodSpawner {
+    time_to_next_spawn: Duration,
+    time_since_last_spawn: Duration,
+}
+
+impl FoodSpawner {
+    fn update_and_spawn(&mut self, grid: &Grid, delta_time: Duration) -> Option<Position> {
+        self.time_since_last_spawn += delta_time;
+        if self.time_since_last_spawn > self.time_to_next_spawn {
+            self.time_since_last_spawn = Duration::new(0, 0);
+
+            let mut rng = rand::thread_rng();
+            self.time_to_next_spawn = Duration::new(rng.gen_range(5..10), 0);
+
+            return Some(Position {
+                x: rng.gen_range(1..grid.width - 1) as i32,
+                y: rng.gen_range(1..grid.height - 1) as i32,
+            });
+        }
+
+        None
+    }
+}
+
 impl GameState {
     pub fn new() -> Self {
-        let default_size = (60, 60);
+        let default_size = (60, 30);
 
         Self {
             snake: Snake::new(Position { x: 3, y: 1 }, 3),
             grid: initialize_level(default_size),
+            food_spawmer: FoodSpawner {
+                time_to_next_spawn: Duration::new(0, 0),
+                time_since_last_spawn: Duration::new(0, 0),
+            },
+            foods: vec![],
         }
     }
 
-    pub fn update(&mut self) {
-        self.snake.advance();
+    fn reset(&mut self) {
+        *self = Self::new();
+    }
+
+    pub fn update(&mut self, delta_time: Duration) {
+        match self.snake.advance(&self.grid, delta_time) {
+            AdvanceResult::Collision => {
+                self.reset();
+            }
+            AdvanceResult::Ok(tail_position) => {
+                let head_position = self.snake.head_position();
+                for food_position in &self.foods {
+                    if *food_position == head_position {
+                        self.snake.grow(tail_position);
+                    }
+                }
+
+                self.foods = self
+                    .foods
+                    .clone()
+                    .into_iter()
+                    .filter(|position| *position != head_position)
+                    .collect();
+            }
+        };
+
+        if let Some(spawn_position) = self.food_spawmer.update_and_spawn(&self.grid, delta_time) {
+            self.foods.push(spawn_position);
+        }
     }
 
     pub fn render(&self) {
@@ -158,6 +247,10 @@ impl GameState {
             *self.snake.parts.front().unwrap(),
             Cell::Snake(SnakePart::Head),
         );
+
+        for food in &self.foods {
+            render.set_cell(*food, Cell::Food);
+        }
 
         // Print all.
         render.print();

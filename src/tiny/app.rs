@@ -1,5 +1,6 @@
 use core::time;
 use std::thread;
+use std::time::{Duration, Instant};
 
 use crate::flow::{DefaultFlow, Flow};
 use crate::platform::{Key, Platform};
@@ -26,18 +27,28 @@ impl TinyApp {
     }
 
     pub fn run(&mut self) {
+        const FRAME_TIME_TARGET: time::Duration = time::Duration::from_millis(33);
+        let game_began = Instant::now();
+        let mut last_frame_time = Instant::now().duration_since(game_began);
+
         while !self.should_quit() {
+            let time_now = Instant::now().duration_since(game_began);
+            let elapsed_time = time_now - last_frame_time;
+            last_frame_time = time_now;
+
             if let Some(input_char) = self.platform.poll_input() {
                 let key = Platform::translate_input(input_char);
                 self.handle_key(key);
             }
 
-            self.update();
+            self.update(elapsed_time);
 
             Platform::clear_display();
             self.render();
 
-            thread::sleep(time::Duration::from_millis(33));
+            if elapsed_time < FRAME_TIME_TARGET {
+                thread::sleep(FRAME_TIME_TARGET - elapsed_time);
+            }
         }
     }
 
@@ -51,12 +62,12 @@ impl TinyApp {
         }
     }
 
-    fn update(&mut self) {
+    fn update(&mut self, delta_time: Duration) {
         if self.should_quit() {
             return;
         }
 
-        if let Some(new_flow) = self.flow.update() {
+        if let Some(new_flow) = self.flow.update(delta_time) {
             self.flow = new_flow;
         }
     }

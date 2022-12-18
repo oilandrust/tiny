@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::{
     level::{Grid, LEVELS},
     sokoban::*,
@@ -105,7 +107,7 @@ impl Flow for GameFlow {
         None
     }
 
-    fn update(&mut self) -> Option<Box<dyn Flow>> {
+    fn update(&mut self, _delta_time: Duration) -> Option<Box<dyn Flow>> {
         self.current_grid = self.game_state.render_grid();
         if !self.game_state.level_is_complete() {
             return None;

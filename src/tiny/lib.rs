@@ -8,4 +8,5 @@ pub mod prelude {
     pub use crate::flow::Flow;
     pub use crate::math::{Direction, Position};
     pub use crate::platform::Key;
+    pub use std::time::Duration;
 }
