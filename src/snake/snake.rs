@@ -218,18 +218,16 @@ impl GameState {
             }
             AdvanceResult::Ok(tail_position) => {
                 let head_position = self.snake.head_position();
-                for food_position in &self.foods {
-                    if *food_position == head_position {
-                        self.snake.grow(tail_position);
-                    }
-                }
 
-                self.foods = self
-                    .foods
-                    .clone()
-                    .into_iter()
-                    .filter(|position| *position != head_position)
-                    .collect();
+                let mut food_index = 0;
+                while food_index < self.foods.len() {
+                    if self.foods[food_index] == head_position {
+                        self.snake.grow(tail_position);
+                        self.foods.swap_remove(food_index);
+                        continue;
+                    }
+                    food_index += 1;
+                }
             }
         };
 
