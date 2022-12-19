@@ -5,6 +5,11 @@ use std::time::{Duration, Instant};
 use crate::flow::{DefaultFlow, Flow};
 use crate::platform::{Key, Platform};
 
+pub struct Time {
+    pub frame_delta_time: Duration,
+    pub time_since_startup: Duration,
+}
+
 pub struct TinyApp {
     flow: Box<dyn Flow>,
     platform: Platform,
@@ -41,7 +46,10 @@ impl TinyApp {
                 self.handle_key(key);
             }
 
-            self.update(elapsed_time);
+            self.update(&Time {
+                frame_delta_time: elapsed_time,
+                time_since_startup: time_now,
+            });
 
             Platform::clear_display();
             self.render();
@@ -62,12 +70,12 @@ impl TinyApp {
         }
     }
 
-    fn update(&mut self, delta_time: Duration) {
+    fn update(&mut self, time: &Time) {
         if self.should_quit() {
             return;
         }
 
-        if let Some(new_flow) = self.flow.update(delta_time) {
+        if let Some(new_flow) = self.flow.update(time) {
             self.flow = new_flow;
         }
     }

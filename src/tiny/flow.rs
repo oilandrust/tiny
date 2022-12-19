@@ -1,6 +1,6 @@
-use std::{iter, time::Duration};
+use std::iter;
 
-use crate::platform::Key;
+use crate::{app::Time, platform::Key};
 
 pub trait Flow {
     fn render(&self) {}
@@ -9,7 +9,7 @@ pub trait Flow {
         None
     }
 
-    fn update(&mut self, _delta_time: Duration) -> Option<Box<dyn Flow>> {
+    fn update(&mut self, _time: &Time) -> Option<Box<dyn Flow>> {
         None
     }
 

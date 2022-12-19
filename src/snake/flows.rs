@@ -1,4 +1,5 @@
-use crate::snake::GameState;
+use crate::snake::{Cell, GameState, Grid, Snake, SnakePart, UpdateResult};
+use tiny::app::Time;
 use tiny::prelude::*;
 
 use tiny::flow::{GameLauncher, QuitFlow};
@@ -49,8 +50,14 @@ impl Flow for GameFlow {
         self.state.render();
     }
 
-    fn update(&mut self, delta_time: Duration) -> Option<Box<dyn Flow>> {
-        self.state.update(delta_time);
+    fn update(&mut self, time: &Time) -> Option<Box<dyn Flow>> {
+        if self.state.update(time.frame_delta_time) == UpdateResult::Collision {
+            return Some(Box::new(CollisionAnimSequence::new(
+                &self.state,
+                time.time_since_startup,
+            )));
+        }
+
         None
     }
 
@@ -68,5 +75,62 @@ impl Flow for GameFlow {
         }
 
         None
+    }
+}
+
+struct CollisionAnimSequence {
+    anim_start_time: Duration,
+    snake: Snake,
+    grid: Grid,
+    foods: Vec<Position>,
+    snake_visible: bool,
+}
+
+impl CollisionAnimSequence {
+    fn new(game_state: &GameState, start_time: Duration) -> Self {
+        // TODO: Would like to avoid clone here.
+        CollisionAnimSequence {
+            anim_start_time: start_time,
+            snake: game_state.snake.clone(),
+            grid: game_state.grid.clone(),
+            foods: game_state.foods.clone(),
+            snake_visible: false,
+        }
+    }
+}
+
+impl Flow for CollisionAnimSequence {
+    fn update(&mut self, time: &Time) -> Option<Box<dyn Flow>> {
+        if time.time_since_startup > self.anim_start_time + Duration::new(3, 0) {
+            return Some(Box::new(GameFlow::new()));
+        }
+
+        self.snake_visible =
+            (3 * (time.time_since_startup - self.anim_start_time)).as_secs() % 2 == 0;
+
+        None
+    }
+
+    fn render(&self) {
+        // Render the level.
+        let mut render = self.grid.clone();
+
+        // Render the snake.
+        if self.snake_visible {
+            for part in self.snake.parts.iter() {
+                render.set_cell(*part, Cell::Snake(SnakePart::Body));
+            }
+            render.set_cell(
+                *self.snake.parts.front().unwrap(),
+                Cell::Snake(SnakePart::Head),
+            );
+        }
+
+        for food in &self.foods {
+            render.set_cell(*food, Cell::Food);
+        }
+
+        // Print all.
+        render.print();
     }
 }

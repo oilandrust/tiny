@@ -3,9 +3,10 @@ use std::{collections::VecDeque, iter};
 use rand::Rng;
 use tiny::prelude::*;
 
-struct Snake {
+#[derive(Clone)]
+pub struct Snake {
     direction: Direction,
-    parts: VecDeque<Position>,
+    pub parts: VecDeque<Position>,
     accumulated_distance: f32,
 }
 
@@ -77,13 +78,13 @@ impl Snake {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-enum SnakePart {
+pub enum SnakePart {
     Head,
     Body,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-enum Cell {
+pub enum Cell {
     Empty,
     Wall,
     Food,
@@ -110,11 +111,11 @@ pub struct Grid {
 }
 
 impl Grid {
-    fn cell_at(&self, position: Position) -> Cell {
+    pub fn cell_at(&self, position: Position) -> Cell {
         self.grid[position.x as usize + self.width * position.y as usize]
     }
 
-    fn set_cell(&mut self, position: Position, value: Cell) {
+    pub fn set_cell(&mut self, position: Position, value: Cell) {
         self.grid[position.x as usize + self.width * position.y as usize] = value;
     }
 
@@ -136,10 +137,10 @@ impl Grid {
 }
 
 pub struct GameState {
-    snake: Snake,
-    grid: Grid,
+    pub snake: Snake,
+    pub grid: Grid,
     food_spawmer: FoodSpawner,
-    foods: Vec<Position>,
+    pub foods: Vec<Position>,
 }
 
 fn initialize_level(size: (usize, usize)) -> Grid {
@@ -189,6 +190,12 @@ impl FoodSpawner {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum UpdateResult {
+    Collision,
+    Ok,
+}
+
 impl GameState {
     pub fn new() -> Self {
         let default_size = (60, 30);
@@ -204,14 +211,10 @@ impl GameState {
         }
     }
 
-    fn reset(&mut self) {
-        *self = Self::new();
-    }
-
-    pub fn update(&mut self, delta_time: Duration) {
+    pub fn update(&mut self, delta_time: Duration) -> UpdateResult {
         match self.snake.advance(&self.grid, delta_time) {
             AdvanceResult::Collision => {
-                self.reset();
+                return UpdateResult::Collision;
             }
             AdvanceResult::Ok(tail_position) => {
                 let head_position = self.snake.head_position();
@@ -233,6 +236,8 @@ impl GameState {
         if let Some(spawn_position) = self.food_spawmer.update_and_spawn(&self.grid, delta_time) {
             self.foods.push(spawn_position);
         }
+
+        UpdateResult::Ok
     }
 
     pub fn render(&self) {
