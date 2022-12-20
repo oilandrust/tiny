@@ -125,14 +125,12 @@ impl Grid {
     }
 
     pub fn print(&self) {
+        let mut output_string = String::with_capacity(self.grid.len() + self.height);
         for line in self.grid.chunks(self.width as usize) {
-            let line_string = line
-                .iter()
-                .map(|cell| char::from(*cell))
-                .collect::<String>();
-
-            println!("{line_string}");
+            output_string.extend(line.iter().map(|cell| char::from(*cell)));
+            output_string.push('\n');
         }
+        print!("{output_string}");
     }
 }
 
